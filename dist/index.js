@@ -9,26 +9,49 @@ dotenv.config();
 debug('Starting request');
 // perform a GET request for the currency data
 const url = 'https://api.fixer.io/latest?base=USD';
-https.get(url, (resp) => {
-    let data = '';
-    resp.on('data', (chunk) => {
-        data += chunk;
-    });
-    resp.on('end', () => {
-        debug('Got response');
-        updateDatabase(data);
-    });
-    resp.on('error', (err) => {
-        debug(err);
-    });
-});
-function updateDatabase(data) {
-    let jsonData;
-    try {
-        jsonData = JSON.parse(data);
+https.get(url, (res) => {
+    const { statusCode } = res;
+    let contentType = res.headers['content-type'];
+    if (typeof contentType !== 'string')
+        contentType = contentType[0];
+    let error;
+    if (statusCode !== 200)
+        error = new Error(`Request Failed.\nStatus Code: ${statusCode}`);
+    else if (!/^application\/json/.test(contentType))
+        error = new Error(`Invalid content-type.\nExpected application/json but received ${contentType}`);
+    if (error) {
+        debug(error.message);
+        // consume response data to free up memory
+        res.resume();
+        return;
     }
-    catch (err) {
-        debug('JSON parse error: ' + err.message);
+    res.setEncoding('utf8');
+    let rawData = '';
+    res.on('data', (chunk) => { rawData += chunk; });
+    res.on('end', () => {
+        debug('Got response');
+        try {
+            const jsonData = JSON.parse(rawData);
+            updateDatabase(jsonData);
+        }
+        catch (err) {
+            debug('JSON parse error: ' + err.message);
+        }
+    });
+}).on('error', (err) => {
+    debug('Request error: ' + err.message);
+});
+function updateDatabase(jsonData) {
+    // see if the data makes sense
+    let error;
+    if (typeof jsonData.rates === 'undefined')
+        error = new Error('No rates supplied');
+    else if (typeof jsonData.date !== 'string')
+        error = new Error('No date supplied');
+    else if (!/\d{4}-\d{2}-\d{2}/.test(jsonData.date))
+        error = new Error('Unrecognized date format');
+    if (error) {
+        debug(error.message);
         return;
     }
     // set up the database configuration options
@@ -44,8 +67,6 @@ function updateDatabase(data) {
     let connection;
     mysql.createConnection(options).then((con) => {
         connection = con; // store for later
-        if (typeof jsonData.rates === 'undefined')
-            throw new Error('No rates supplied');
         // find out which currencies need updating
         let sqlSelect;
         if (typeof process.env.ALL_CURRENCIES !== 'undefined' && process.env.ALL_CURRENCIES === 'TRUE')
