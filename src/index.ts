@@ -57,7 +57,7 @@ function updateDatabase(jsonData: any) {
         error = new Error('No rates supplied');
     else if (typeof jsonData.date !== 'string')
         error = new Error('No date supplied');
-    else if (!/\d{4}-\d{2}-\d{2}/.test(jsonData.date))
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(jsonData.date))
         error = new Error('Unrecognized date format');
     if (error) {
         debug(error.message);
