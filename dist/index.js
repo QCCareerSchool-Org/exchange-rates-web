@@ -21,8 +21,7 @@ https.get(url, (res) => {
         error = new Error(`Invalid content-type.\nExpected application/json but received ${contentType}`);
     if (error) {
         debug(error.message);
-        // consume response data to free up memory
-        res.resume();
+        res.resume(); // consume response data to free up memory
         return;
     }
     res.setEncoding('utf8');
@@ -65,7 +64,8 @@ function updateDatabase(jsonData) {
     else if (typeof process.env.DB_HOST !== 'undefined')
         options.host = process.env.DB_HOST;
     let connection;
-    mysql.createConnection(options).then((con) => {
+    mysql.createConnection(options)
+        .then((con) => {
         connection = con; // store for later
         // find out which currencies need updating
         let sqlSelect;

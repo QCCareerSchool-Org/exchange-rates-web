@@ -27,8 +27,7 @@ https.get(url, (res) => {
 
     if (error) {
         debug(error.message);
-        // consume response data to free up memory
-        res.resume();
+        res.resume();  // consume response data to free up memory
         return;
     }
 
@@ -59,6 +58,7 @@ function updateDatabase(jsonData: IExchangeResult) {
         error = new Error('No date supplied');
     else if (!/^\d{4}-\d{2}-\d{2}$/.test(jsonData.date))
         error = new Error('Unrecognized date format');
+
     if (error) {
         debug(error.message);
         return;
@@ -78,50 +78,51 @@ function updateDatabase(jsonData: IExchangeResult) {
 
     let connection: mysql.Connection;
 
-    mysql.createConnection(options).then((con) => {
+    mysql.createConnection(options)
+        .then((con) => {
 
-        connection = con; // store for later
+            connection = con; // store for later
 
-        // find out which currencies need updating
-        let sqlSelect;
-        if (typeof process.env.ALL_CURRENCIES !== 'undefined' && process.env.ALL_CURRENCIES === 'TRUE')
-            sqlSelect = "SELECT code FROM currencies WHERE NOT code = 'USD'";
-        else
-            sqlSelect = "SELECT code FROM currencies WHERE NOT code = 'USD' AND NOT `update` = 0";
+            // find out which currencies need updating
+            let sqlSelect;
+            if (typeof process.env.ALL_CURRENCIES !== 'undefined' && process.env.ALL_CURRENCIES === 'TRUE')
+                sqlSelect = "SELECT code FROM currencies WHERE NOT code = 'USD'";
+            else
+                sqlSelect = "SELECT code FROM currencies WHERE NOT code = 'USD' AND NOT `update` = 0";
 
-        return connection.query(sqlSelect);
+            return connection.query(sqlSelect);
 
-    }).then((currencies: ICurrency[]) => {
+        }).then((currencies: ICurrency[]) => {
 
-        const sqlUpdate = 'UPDATE currencies SET exchange = ?, last_updated = NOW() WHERE code = ?';
+            const sqlUpdate = 'UPDATE currencies SET exchange = ?, last_updated = NOW() WHERE code = ?';
 
-        const promises: Array<Promise<any>> = [];
+            const promises: Array<Promise<any>> = [];
 
-        // update the currencies in parallel
-        for (const currency of currencies) {
-            if (typeof jsonData.rates[currency.code] !== 'number') {
-                debug(`${currency.code} not found`);
-                continue;
+            // update the currencies in parallel
+            for (const currency of currencies) {
+                if (typeof jsonData.rates[currency.code] !== 'number') {
+                    debug(`${currency.code} not found`);
+                    continue;
+                }
+                const rate = jsonData.rates[currency.code];
+                debug(`Updating ${currency.code}: ${rate}`);
+                if (typeof process.env.TESTING === 'undefined')
+                    promises.push(connection.query(sqlUpdate, [ rate, currency.code ]));
             }
-            const rate = jsonData.rates[currency.code];
-            debug(`Updating ${currency.code}: ${rate}`);
-            if (typeof process.env.TESTING === 'undefined')
-                promises.push(connection.query(sqlUpdate, [ rate, currency.code ]));
-        }
 
-        // wait for all of the updates
-        return Promise.all(promises);
+            // wait for all of the updates
+            return Promise.all(promises);
 
-    }).catch((err) => {
+        }).catch((err) => {
 
-        debug('Database error: ' + err.message);
+            debug('Database error: ' + err.message);
 
-    }).then(() => {
+        }).then(() => {
 
-        if (connection && connection.end)
-            connection.end();
+            if (connection && connection.end)
+                connection.end();
 
-    });
+        });
 }
 
 interface IExchangeResult {
