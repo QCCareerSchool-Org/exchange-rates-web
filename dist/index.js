@@ -78,15 +78,16 @@ function updateDatabase(jsonData) {
         const sqlUpdate = 'UPDATE currencies SET exchange = ?, last_updated = NOW() WHERE code = ?';
         const promises = [];
         // update the currencies in parallel
-        for (const currency of currencies)
-            if (typeof jsonData.rates[currency.code] !== 'number')
+        for (const currency of currencies) {
+            if (typeof jsonData.rates[currency.code] !== 'number') {
                 debug(`${currency.code} not found`);
-            else {
-                debug(`Updating ${currency.code}: ${jsonData.rates[currency.code]}`);
-                const rate = jsonData.rates[currency.code];
-                if (typeof process.env.TESTING === 'undefined')
-                    promises.push(connection.query(sqlUpdate, [rate, currency.code]));
+                continue;
             }
+            const rate = jsonData.rates[currency.code];
+            debug(`Updating ${currency.code}: ${rate}`);
+            if (typeof process.env.TESTING === 'undefined')
+                promises.push(connection.query(sqlUpdate, [rate, currency.code]));
+        }
         // wait for all of the updates
         return Promise.all(promises);
     }).catch((err) => {

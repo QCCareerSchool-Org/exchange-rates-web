@@ -38,7 +38,7 @@ https.get(url, (res) => {
     res.on('end', () => {
         debug('Got response');
         try {
-            const jsonData = JSON.parse(rawData);
+            const jsonData: IExchangeResult = JSON.parse(rawData);
             updateDatabase(jsonData);
         } catch (err) {
             debug('JSON parse error: ' + err.message);
@@ -49,7 +49,7 @@ https.get(url, (res) => {
     debug('Request error: ' + err.message);
 });
 
-function updateDatabase(jsonData: any) {
+function updateDatabase(jsonData: IExchangeResult) {
 
     // see if the data makes sense
     let error;
@@ -91,22 +91,23 @@ function updateDatabase(jsonData: any) {
 
         return connection.query(sqlSelect);
 
-    }).then((currencies) => {
+    }).then((currencies: ICurrency[]) => {
 
         const sqlUpdate = 'UPDATE currencies SET exchange = ?, last_updated = NOW() WHERE code = ?';
 
         const promises: Array<Promise<any>> = [];
 
         // update the currencies in parallel
-        for (const currency of currencies)
-            if (typeof jsonData.rates[currency.code] !== 'number')
+        for (const currency of currencies) {
+            if (typeof jsonData.rates[currency.code] !== 'number') {
                 debug(`${currency.code} not found`);
-            else {
-                debug(`Updating ${currency.code}: ${jsonData.rates[currency.code]}`);
-                const rate = jsonData.rates[currency.code];
-                if (typeof process.env.TESTING === 'undefined')
-                    promises.push(connection.query(sqlUpdate, [ rate, currency.code ]));
+                continue;
             }
+            const rate = jsonData.rates[currency.code];
+            debug(`Updating ${currency.code}: ${rate}`);
+            if (typeof process.env.TESTING === 'undefined')
+                promises.push(connection.query(sqlUpdate, [ rate, currency.code ]));
+        }
 
         // wait for all of the updates
         return Promise.all(promises);
@@ -121,4 +122,14 @@ function updateDatabase(jsonData: any) {
             connection.end();
 
     });
+}
+
+interface IExchangeResult {
+    base: string;
+    date: string;
+    rates: { [symbol: string]: number; };
+}
+
+interface ICurrency {
+    code: string;
 }
