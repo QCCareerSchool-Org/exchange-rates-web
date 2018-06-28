@@ -1,6 +1,6 @@
 {
   "name": "exchange-rates-web",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Updates currency exchange rates on the web server database",
   "main": "dist/index.js",
   "scripts": {
