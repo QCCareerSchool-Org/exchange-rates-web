@@ -1,6 +1,6 @@
 {
   "name": "exchange-rates-web",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Updates currency exchange rates on the web server database",
   "main": "dist/index.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist"
   },
-  "author": "Dave Welsh <dave@qccareerschool.com",
+  "author": "QC Career School",
   "license": "UNLICENSED",
   "dependencies": {
     "@types/debug": "^4.1.5",
