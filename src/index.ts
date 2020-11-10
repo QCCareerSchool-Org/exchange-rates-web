@@ -1,7 +1,7 @@
-import * as Debug from 'debug';
-import * as dotenv from 'dotenv';
-import * as mysql from 'promise-mysql';
-import * as rp from 'request-promise';
+import Debug from 'debug';
+import dotenv from 'dotenv';
+import mysql from 'promise-mysql';
+import rp from 'request-promise';
 
 const debug = Debug('index');
 
@@ -14,7 +14,7 @@ debug('Starting request');
   try {
 
     // perform a GET request for the currency data
-    const url = `http://data.fixer.io/api/latest?access_key=${process.env.FIXER_API_KEY}&symbols=USD,AUD,CAD,NZD,GBP`;
+    const url = `http://data.fixer.io/api/latest?access_key=${process.env.FIXER_API_KEY}&symbols=USD,AUD,CAD,NZD,GBP,ZAR`;
     const response: IExchangeResult = await rp(url, { json: true });
 
     debug(response);
