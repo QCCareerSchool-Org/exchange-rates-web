@@ -1,5 +1,6 @@
 import Debug from 'debug';
 import dotenv from 'dotenv';
+import { promises as fs } from 'fs';
 import mysql from 'promise-mysql';
 import rp from 'request-promise';
 
@@ -48,6 +49,14 @@ debug('Starting request');
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
     };
+
+    if (process.env.DB_TLS === 'true') {
+      options.ssl = {
+        ca: await fs.readFile(process.env.DB_SERVER_CA ?? 'server-ca.pem'),
+        cert: await fs.readFile(process.env.DB_CLIENT_CERT ?? 'client-cert.pem'),
+        key: await fs.readFile(process.env.DB_CLIENT_KEY ?? 'client-key.pem'),
+      }
+    }
 
     if (typeof process.env.DB_SOCKET_PATH !== 'undefined') // prefer a socketPath
       options.socketPath = process.env.DB_SOCKET_PATH;
