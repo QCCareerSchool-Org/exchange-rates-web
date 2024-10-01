@@ -17,7 +17,7 @@ debug('Starting request');
     // perform a GET request for the currency data
     const url = `http://data.fixer.io/api/latest?access_key=${process.env.FIXER_API_KEY}&symbols=USD,AUD,CAD,NZD,GBP,ZAR`;
     const response: IExchangeResult = await rp(url, { json: true });
-
+console.log(response);
     debug(response);
 
     // see if the data makes sense
