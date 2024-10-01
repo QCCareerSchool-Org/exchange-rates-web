@@ -41,31 +41,38 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var debug_1 = __importDefault(require("debug"));
 var dotenv_1 = __importDefault(require("dotenv"));
+var fs_1 = require("fs");
 var promise_mysql_1 = __importDefault(require("promise-mysql"));
 var request_promise_1 = __importDefault(require("request-promise"));
 var debug = debug_1.default('index');
 dotenv_1.default.config();
 debug('Starting request');
 (function () { return __awaiter(void 0, void 0, void 0, function () {
-    var url, response, rates, r, options, connection, sqlSelect, currencies, sqlUpdate, promises, _i, currencies_1, currency, rate, err_1, err_2;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var url, response, rates, r, options, _a, connection, sqlSelect, currencies, sqlUpdate, promises, _i, currencies_1, currency, rate, err_1, err_2;
+    var _b;
+    var _c, _d, _e;
+    return __generator(this, function (_f) {
+        switch (_f.label) {
             case 0:
-                _a.trys.push([0, 11, , 12]);
+                _f.trys.push([0, 15, , 16]);
                 url = "http://data.fixer.io/api/latest?access_key=" + process.env.FIXER_API_KEY + "&symbols=USD,AUD,CAD,NZD,GBP,ZAR";
                 return [4 /*yield*/, request_promise_1.default(url, { json: true })];
             case 1:
-                response = _a.sent();
+                response = _f.sent();
                 debug(response);
                 // see if the data makes sense
-                if (typeof response.rates === 'undefined')
+                if (typeof response.rates === 'undefined') {
                     throw new Error('No rates supplied');
-                if (typeof response.date !== 'string')
+                }
+                if (typeof response.date !== 'string') {
                     throw new Error('No date supplied');
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(response.date))
+                }
+                if (!/^\d{4}-\d{2}-\d{2}$/u.test(response.date)) {
                     throw new Error('Unrecognized date format');
-                if (typeof response.rates.USD === 'undefined')
+                }
+                if (typeof response.rates.USD === 'undefined') {
                     throw new Error('No USD rate found');
+                }
                 rates = {};
                 rates.USD = 1;
                 rates.EUR = 1 / response.rates.USD;
@@ -81,27 +88,46 @@ debug('Starting request');
                     password: process.env.DB_PASSWORD,
                     database: process.env.DB_DATABASE,
                 };
-                if (typeof process.env.DB_SOCKET_PATH !== 'undefined') // prefer a socketPath
-                    options.socketPath = process.env.DB_SOCKET_PATH;
-                else if (typeof process.env.DB_HOST !== 'undefined') // but use a host otherwise
-                    options.host = process.env.DB_HOST;
-                _a.label = 2;
+                if (!(process.env.DB_TLS === 'true')) return [3 /*break*/, 5];
+                _a = options;
+                _b = {};
+                return [4 /*yield*/, fs_1.promises.readFile((_c = process.env.DB_SERVER_CA) !== null && _c !== void 0 ? _c : 'server-ca.pem')];
             case 2:
-                _a.trys.push([2, 9, , 10]);
-                return [4 /*yield*/, promise_mysql_1.default.createConnection(options)];
+                _b.ca = _f.sent();
+                return [4 /*yield*/, fs_1.promises.readFile((_d = process.env.DB_CLIENT_CERT) !== null && _d !== void 0 ? _d : 'client-cert.pem')];
             case 3:
-                connection = _a.sent();
-                _a.label = 4;
+                _b.cert = _f.sent();
+                return [4 /*yield*/, fs_1.promises.readFile((_e = process.env.DB_CLIENT_KEY) !== null && _e !== void 0 ? _e : 'client-key.pem')];
             case 4:
-                _a.trys.push([4, , 7, 8]);
-                sqlSelect = void 0;
-                if (typeof process.env.ALL_CURRENCIES !== 'undefined' && process.env.ALL_CURRENCIES === 'TRUE')
-                    sqlSelect = "SELECT code FROM currencies WHERE NOT code = 'USD'";
-                else
-                    sqlSelect = "SELECT code FROM currencies WHERE NOT code = 'USD' AND NOT `update` = 0";
-                return [4 /*yield*/, connection.query(sqlSelect)];
+                _a.ssl = (_b.key = _f.sent(),
+                    _b);
+                _f.label = 5;
             case 5:
-                currencies = _a.sent();
+                if (typeof process.env.DB_SOCKET_PATH !== 'undefined') { // prefer a socketPath
+                    options.socketPath = process.env.DB_SOCKET_PATH;
+                }
+                else if (typeof process.env.DB_HOST !== 'undefined') { // but use a host otherwise
+                    options.host = process.env.DB_HOST;
+                }
+                _f.label = 6;
+            case 6:
+                _f.trys.push([6, 13, , 14]);
+                return [4 /*yield*/, promise_mysql_1.default.createConnection(options)];
+            case 7:
+                connection = _f.sent();
+                _f.label = 8;
+            case 8:
+                _f.trys.push([8, , 11, 12]);
+                sqlSelect = void 0;
+                if (typeof process.env.ALL_CURRENCIES !== 'undefined' && process.env.ALL_CURRENCIES === 'TRUE') {
+                    sqlSelect = "SELECT code FROM currencies WHERE NOT code = 'USD'";
+                }
+                else {
+                    sqlSelect = "SELECT code FROM currencies WHERE NOT code = 'USD' AND NOT `update` = 0";
+                }
+                return [4 /*yield*/, connection.query(sqlSelect)];
+            case 9:
+                currencies = _f.sent();
                 sqlUpdate = 'UPDATE currencies SET exchange = ?, last_updated = NOW() WHERE code = ?';
                 promises = [];
                 // update the currencies in parallel
@@ -113,29 +139,30 @@ debug('Starting request');
                     }
                     rate = rates[currency.code];
                     debug("Updating " + currency.code + ": " + rate);
-                    if (typeof process.env.TESTING === 'undefined')
+                    if (typeof process.env.TESTING === 'undefined') {
                         promises.push(connection.query(sqlUpdate, [rate, currency.code]));
+                    }
                 }
                 // wait for all of the updates
                 return [4 /*yield*/, Promise.all(promises)];
-            case 6:
+            case 10:
                 // wait for all of the updates
-                _a.sent();
-                return [3 /*break*/, 8];
-            case 7:
+                _f.sent();
+                return [3 /*break*/, 12];
+            case 11:
                 connection.end();
                 return [7 /*endfinally*/];
-            case 8: return [3 /*break*/, 10];
-            case 9:
-                err_1 = _a.sent();
-                debug('Database error: ' + err_1.message);
-                return [3 /*break*/, 10];
-            case 10: return [3 /*break*/, 12];
-            case 11:
-                err_2 = _a.sent();
-                debug('Error: ' + err_2.message);
-                return [3 /*break*/, 12];
-            case 12: return [2 /*return*/];
+            case 12: return [3 /*break*/, 14];
+            case 13:
+                err_1 = _f.sent();
+                debug('Database error: ' + (err_1 instanceof Error ? err_1.message : err_1));
+                return [3 /*break*/, 14];
+            case 14: return [3 /*break*/, 16];
+            case 15:
+                err_2 = _f.sent();
+                debug('Error: ' + (err_2 instanceof Error ? err_2.message : err_2));
+                return [3 /*break*/, 16];
+            case 16: return [2 /*return*/];
         }
     });
 }); })();
