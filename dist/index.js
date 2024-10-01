@@ -61,14 +61,18 @@ debug('Starting request');
                 response = _f.sent();
                 debug(response);
                 // see if the data makes sense
-                if (typeof response.rates === 'undefined')
+                if (typeof response.rates === 'undefined') {
                     throw new Error('No rates supplied');
-                if (typeof response.date !== 'string')
+                }
+                if (typeof response.date !== 'string') {
                     throw new Error('No date supplied');
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(response.date))
+                }
+                if (!/^\d{4}-\d{2}-\d{2}$/u.test(response.date)) {
                     throw new Error('Unrecognized date format');
-                if (typeof response.rates.USD === 'undefined')
+                }
+                if (typeof response.rates.USD === 'undefined') {
                     throw new Error('No USD rate found');
+                }
                 rates = {};
                 rates.USD = 1;
                 rates.EUR = 1 / response.rates.USD;
@@ -99,10 +103,12 @@ debug('Starting request');
                     _b);
                 _f.label = 5;
             case 5:
-                if (typeof process.env.DB_SOCKET_PATH !== 'undefined') // prefer a socketPath
+                if (typeof process.env.DB_SOCKET_PATH !== 'undefined') { // prefer a socketPath
                     options.socketPath = process.env.DB_SOCKET_PATH;
-                else if (typeof process.env.DB_HOST !== 'undefined') // but use a host otherwise
+                }
+                else if (typeof process.env.DB_HOST !== 'undefined') { // but use a host otherwise
                     options.host = process.env.DB_HOST;
+                }
                 _f.label = 6;
             case 6:
                 _f.trys.push([6, 13, , 14]);
@@ -113,10 +119,12 @@ debug('Starting request');
             case 8:
                 _f.trys.push([8, , 11, 12]);
                 sqlSelect = void 0;
-                if (typeof process.env.ALL_CURRENCIES !== 'undefined' && process.env.ALL_CURRENCIES === 'TRUE')
+                if (typeof process.env.ALL_CURRENCIES !== 'undefined' && process.env.ALL_CURRENCIES === 'TRUE') {
                     sqlSelect = "SELECT code FROM currencies WHERE NOT code = 'USD'";
-                else
+                }
+                else {
                     sqlSelect = "SELECT code FROM currencies WHERE NOT code = 'USD' AND NOT `update` = 0";
+                }
                 return [4 /*yield*/, connection.query(sqlSelect)];
             case 9:
                 currencies = _f.sent();
@@ -131,8 +139,9 @@ debug('Starting request');
                     }
                     rate = rates[currency.code];
                     debug("Updating " + currency.code + ": " + rate);
-                    if (typeof process.env.TESTING === 'undefined')
+                    if (typeof process.env.TESTING === 'undefined') {
                         promises.push(connection.query(sqlUpdate, [rate, currency.code]));
+                    }
                 }
                 // wait for all of the updates
                 return [4 /*yield*/, Promise.all(promises)];
@@ -146,12 +155,12 @@ debug('Starting request');
             case 12: return [3 /*break*/, 14];
             case 13:
                 err_1 = _f.sent();
-                debug('Database error: ' + err_1.message);
+                debug('Database error: ' + (err_1 instanceof Error ? err_1.message : err_1));
                 return [3 /*break*/, 14];
             case 14: return [3 /*break*/, 16];
             case 15:
                 err_2 = _f.sent();
-                debug('Error: ' + err_2.message);
+                debug('Error: ' + (err_2 instanceof Error ? err_2.message : err_2));
                 return [3 /*break*/, 16];
             case 16: return [2 /*return*/];
         }

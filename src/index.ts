@@ -21,17 +21,21 @@ debug('Starting request');
     debug(response);
 
     // see if the data makes sense
-    if (typeof response.rates === 'undefined')
+    if (typeof response.rates === 'undefined') {
       throw new Error('No rates supplied');
+    }
 
-    if (typeof response.date !== 'string')
+    if (typeof response.date !== 'string') {
       throw new Error('No date supplied');
+    }
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(response.date))
+    if (!/^\d{4}-\d{2}-\d{2}$/u.test(response.date)) {
       throw new Error('Unrecognized date format');
+    }
 
-    if (typeof response.rates.USD === 'undefined')
+    if (typeof response.rates.USD === 'undefined') {
       throw new Error('No USD rate found');
+    }
 
     // convert the rates to a USD base
     const rates: any = {};
@@ -58,10 +62,11 @@ debug('Starting request');
       }
     }
 
-    if (typeof process.env.DB_SOCKET_PATH !== 'undefined') // prefer a socketPath
+    if (typeof process.env.DB_SOCKET_PATH !== 'undefined') { // prefer a socketPath
       options.socketPath = process.env.DB_SOCKET_PATH;
-    else if (typeof process.env.DB_HOST !== 'undefined') // but use a host otherwise
+    } else if (typeof process.env.DB_HOST !== 'undefined') { // but use a host otherwise
       options.host = process.env.DB_HOST;
+    }
 
     try {
 
@@ -71,10 +76,11 @@ debug('Starting request');
 
         // find out which currencies need updating
         let sqlSelect;
-        if (typeof process.env.ALL_CURRENCIES !== 'undefined' && process.env.ALL_CURRENCIES === 'TRUE')
+        if (typeof process.env.ALL_CURRENCIES !== 'undefined' && process.env.ALL_CURRENCIES === 'TRUE') {
           sqlSelect = "SELECT code FROM currencies WHERE NOT code = 'USD'";
-        else
+        } else {
           sqlSelect = "SELECT code FROM currencies WHERE NOT code = 'USD' AND NOT `update` = 0";
+        }
 
         const currencies: ICurrency[] = await connection.query(sqlSelect);
 
@@ -90,8 +96,9 @@ debug('Starting request');
           }
           const rate = rates[currency.code];
           debug(`Updating ${currency.code}: ${rate}`);
-          if (typeof process.env.TESTING === 'undefined')
+          if (typeof process.env.TESTING === 'undefined') {
             promises.push(connection.query(sqlUpdate, [ rate, currency.code ]));
+          }
         }
 
         // wait for all of the updates
@@ -101,10 +108,10 @@ debug('Starting request');
         connection.end();
       }
     } catch (err) {
-      debug('Database error: ' + err.message);
+      debug('Database error: ' + (err instanceof Error ? err.message : err));
     }
   } catch (err) {
-    debug('Error: ' + err.message);
+    debug('Error: ' + (err instanceof Error ? err.message : err));
   }
 
 })();
