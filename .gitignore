@@ -1,3 +1,8 @@
+# Keys
+client-cert.pem
+client-key.pem
+server-ca.pem
+
 # Visual Studio Code files
 .vscode
 
